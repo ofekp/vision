@@ -751,7 +751,7 @@ class RoIHeads(torch.nn.Module):
 
         box_features = self.box_roi_pool(features, proposals, image_shapes)
         box_features = self.box_head(box_features)
-        class_logits, box_regression = self.box_predictor(features)  # ofekp: changed box_features to features
+        class_logits, box_regression = self.box_predictor(box_features)  # ofekp: changed box_features to features
 
         result = torch.jit.annotate(List[Dict[str, torch.Tensor]], [])
         losses = {}

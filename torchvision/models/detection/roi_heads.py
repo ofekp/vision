@@ -753,7 +753,7 @@ class RoIHeads(torch.nn.Module):
         # box_features = self.box_head(box_features)
         # class_logits, box_regression = self.box_predictor(box_features)
 
-        output_map = self.box_predictor(features)
+        output_map = self.box_predictor(features, targets)
 
         result = torch.jit.annotate(List[Dict[str, torch.Tensor]], [])
         losses = {}

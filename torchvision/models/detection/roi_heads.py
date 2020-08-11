@@ -12,8 +12,6 @@ from . import _utils as det_utils
 
 from torch.jit.annotations import Optional, List, Dict, Tuple
 
-import bench
-
 
 def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     # type: (Tensor, Tensor, List[Tensor], List[Tensor]) -> Tuple[Tensor, Tensor]

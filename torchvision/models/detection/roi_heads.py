@@ -12,6 +12,8 @@ from . import _utils as det_utils
 
 from torch.jit.annotations import Optional, List, Dict, Tuple
 
+import bench
+
 
 def fastrcnn_loss(class_logits, box_regression, labels, regression_targets):
     # type: (Tensor, Tensor, List[Tensor], List[Tensor]) -> Tuple[Tensor, Tensor]
@@ -749,31 +751,51 @@ class RoIHeads(torch.nn.Module):
             regression_targets = None
             matched_idxs = None
 
-        box_features = self.box_roi_pool(features, proposals, image_shapes)
-        box_features = self.box_head(box_features)
-        class_logits, box_regression = self.box_predictor(features)  # ofekp: changed box_features to features
+        # box_features = self.box_roi_pool(features, proposals, image_shapes)
+        # box_features = self.box_head(box_features)
+        # class_logits, box_regression = self.box_predictor(box_features)
+
+        output_map = self.box_predictor(features)
 
         result = torch.jit.annotate(List[Dict[str, torch.Tensor]], [])
         losses = {}
         if self.training:
             assert labels is not None and regression_targets is not None
-            loss_classifier, loss_box_reg = fastrcnn_loss(
-                class_logits, box_regression, labels, regression_targets)
+            # loss_classifier, loss_box_reg = fastrcnn_loss(
+            #     class_logits, box_regression, labels, regression_targets)
+            # losses = {
+            #     "loss_classifier": loss_classifier,
+            #     "loss_box_reg": loss_box_reg
+            # }
             losses = {
-                "loss_classifier": loss_classifier,
-                "loss_box_reg": loss_box_reg
+                "total_loss": output_map['loss']
             }
         else:
-            boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
-            num_images = len(boxes)
-            for i in range(num_images):
-                result.append(
-                    {
-                        "boxes": boxes[i],
-                        "labels": labels[i],
-                        "scores": scores[i],
-                    }
-                )
+            # boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
+            # num_images = len(boxes)
+            # for i in range(num_images):
+            #     result.append(
+            #         {
+            #             "boxes": boxes[i],
+            #             "labels": labels[i],
+            #             "scores": scores[i],
+            #         }
+            #     )
+            detections = output_map['detections']
+            for index, sample in enumerate(detections):
+                for det in sample:
+                    score = float(det[4])
+                    if score < .001:  # stop when below this threshold, scores in descending order
+                        break
+                    result.append(
+                        {
+                            "boxes": det[0:4].tolist(),
+                            "labels": int(det[5])),
+                            "scores": score,
+                        }
+                    )
+                    self.img_ids.append(image_id)
+                    self.predictions.append(coco_det)
 
         if self.has_mask():
             mask_proposals = [p["boxes"] for p in result]

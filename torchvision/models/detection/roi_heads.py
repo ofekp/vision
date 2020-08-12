@@ -788,7 +788,7 @@ class RoIHeads(torch.nn.Module):
                     result.append(
                         {
                             "boxes": det[0:4].tolist(),
-                            "labels": int(det[5])),
+                            "labels": int(det[5]),
                             "scores": score,
                         }
                     )

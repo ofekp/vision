@@ -95,10 +95,8 @@ class GeneralizedRCNN(nn.Module):
 
         features = self.backbone(images.tensors)
         if isinstance(features, torch.Tensor):
-            print("gen_rcnn: features is of type Tensor")
+            # ofekp: we do not reach here
             features = OrderedDict([('0', features)])
-        else:
-            print("gen_rcnn: features is not(!) of type Tensor")
         proposals, proposal_losses = self.rpn(images, features, targets)
         detections, detector_losses = self.roi_heads(images.tensors, features, proposals, images.image_sizes, targets)
         detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)

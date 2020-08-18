@@ -64,7 +64,7 @@ def maskrcnn_inference(x, labels):
     Arguments:
         x (Tensor): the mask logits
         labels (list[BoxList]): bounding boxes that are used as
-            reference, one for ech image
+            reference, one for each image
 
     Returns:
         results (list[BoxList]): one BoxList for each image, containing
@@ -781,23 +781,52 @@ class RoIHeads(torch.nn.Module):
             #         }
             #     )
             detections = output_map['detections']
-            for index, sample in enumerate(detections):
-                for det in sample:
-                    score = float(det[4])
+            num_images = detections.shape[0]
+            device=detections.device
+            for i in range(num_images):
+                image_detection = detections[i]
+                segments_boxes = []
+                segments_labels = []
+                segments_scores = []
+                for segment in image_detection:
+                    score = float(segment[4])
                     if score < .001:  # stop when below this threshold, scores in descending order
                         break
-                    result.append(
-                        {
-                            "boxes": det[0:4].tolist(),
-                            "labels": int(det[5]),
-                            "scores": score,
-                        }
-                    )
-                    self.img_ids.append(image_id)
-                    self.predictions.append(coco_det)
+                    segments_boxes.append(segment[0:4].tolist())
+                    segments_labels.append(int(segment[5]))
+                    segments_scores.append(score)
+
+                assert torch.min(torch.tensor(segments_labels)) >= 0
+                assert len(segments_boxes) == len(segments_labels)
+                assert len(segments_boxes) == len(segments_scores)
+                result.append(
+                    {
+                        "boxes": torch.tensor(segments_boxes).to(device),
+                        "labels": torch.tensor(segments_labels).to(device),
+                        "scores": torch.tensor(segments_scores).to(device),
+                    }
+                )
+            
+            # for index, sample in enumerate(detections):
+            #     for det in sample:
+            #         score = float(det[4])
+            #         if score < .001:  # stop when below this threshold, scores in descending order
+            #             break
+            #         result.append(
+            #             {
+            #                 "boxes": det[0:4],
+            #                 "labels": int(det[5]),
+            #                 "scores": score,
+            #             }
+            #         )
+            #         # self.img_ids.append(image_id)
+            #         # self.predictions.append(coco_det)
 
         if self.has_mask():
             mask_proposals = [p["boxes"] for p in result]
+            print("mask_proposals len [{}]".format(len(mask_proposals)))
+            if len(mask_proposals) > 0:
+                print("mask_proposals[0].shape [{}]".format(mask_proposals[0].shape))
             if self.training:
                 assert matched_idxs is not None
                 # during training, only focus on positive boxes
@@ -813,8 +842,11 @@ class RoIHeads(torch.nn.Module):
 
             if self.mask_roi_pool is not None:
                 mask_features = self.mask_roi_pool(features, mask_proposals, image_shapes)
+                print("mask_features.shape [{}]".format(mask_features.shape))
                 mask_features = self.mask_head(mask_features)
+                print("mask_features.shape [{}]".format(mask_features.shape))
                 mask_logits = self.mask_predictor(mask_features)
+                print("mask_logits.shape [{}]".format(mask_logits.shape))
             else:
                 mask_logits = torch.tensor(0)
                 raise Exception("Expected mask_roi_pool to be not None")
@@ -834,7 +866,13 @@ class RoIHeads(torch.nn.Module):
                     "loss_mask": rcnn_loss_mask
                 }
             else:
+                print("here 01")
+                print(mask_logits.shape)
                 labels = [r["labels"] for r in result]
+                print(labels)
+                print(len(labels))
+                if len(labels) > 0:
+                    print(labels[0].shape)
                 masks_probs = maskrcnn_inference(mask_logits, labels)
                 for mask_prob, r in zip(masks_probs, result):
                     r["masks"] = mask_prob

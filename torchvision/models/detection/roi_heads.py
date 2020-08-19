@@ -806,7 +806,8 @@ class RoIHeads(torch.nn.Module):
                         "scores": torch.tensor(segments_scores).to(device),
                     }
                 )
-            
+
+
             # for index, sample in enumerate(detections):
             #     for det in sample:
             #         score = float(det[4])
@@ -824,9 +825,6 @@ class RoIHeads(torch.nn.Module):
 
         if self.has_mask():
             mask_proposals = [p["boxes"] for p in result]
-            print("mask_proposals len [{}]".format(len(mask_proposals)))
-            if len(mask_proposals) > 0:
-                print("mask_proposals[0].shape [{}]".format(mask_proposals[0].shape))
             if self.training:
                 assert matched_idxs is not None
                 # during training, only focus on positive boxes
@@ -842,11 +840,8 @@ class RoIHeads(torch.nn.Module):
 
             if self.mask_roi_pool is not None:
                 mask_features = self.mask_roi_pool(features, mask_proposals, image_shapes)
-                print("mask_features.shape [{}]".format(mask_features.shape))
                 mask_features = self.mask_head(mask_features)
-                print("mask_features.shape [{}]".format(mask_features.shape))
                 mask_logits = self.mask_predictor(mask_features)
-                print("mask_logits.shape [{}]".format(mask_logits.shape))
             else:
                 mask_logits = torch.tensor(0)
                 raise Exception("Expected mask_roi_pool to be not None")
@@ -866,13 +861,13 @@ class RoIHeads(torch.nn.Module):
                     "loss_mask": rcnn_loss_mask
                 }
             else:
-                print("here 01")
-                print(mask_logits.shape)
                 labels = [r["labels"] for r in result]
-                print(labels)
-                print(len(labels))
+                num_classes = mask_logits.shape[1]
+                assert num_classes == 11
                 if len(labels) > 0:
-                    print(labels[0].shape)
+                    for label in labels:
+                        assert torch.min(label) >= 0
+                        assert torch.max(label) <= num_classes
                 masks_probs = maskrcnn_inference(mask_logits, labels)
                 for mask_prob, r in zip(masks_probs, result):
                     r["masks"] = mask_prob

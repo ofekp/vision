@@ -767,7 +767,7 @@ class RoIHeads(torch.nn.Module):
             #     "loss_box_reg": loss_box_reg
             # }
             losses = {
-                "box_loss": output_map['loss']
+                "loss_box": output_map['loss']
             }
         else:
             # boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
@@ -858,6 +858,9 @@ class RoIHeads(torch.nn.Module):
                 gt_masks = [t["masks"] for t in targets]
                 gt_labels = [t["labels"] for t in targets]
                 gt_labels = [t - 1 for t in gt_labels]  # TODO(ofekp): compensating change in IMATDataset
+                for tt in gt_labels:
+                    assert torch.min(tt) >= 0
+                    assert torch.min(tt) < 11
                 rcnn_loss_mask = maskrcnn_loss(
                     mask_logits, mask_proposals,
                     gt_masks, gt_labels, pos_matched_idxs)
@@ -871,7 +874,7 @@ class RoIHeads(torch.nn.Module):
                 if len(labels) > 0:
                     for label in labels:
                         assert torch.min(label) >= 0
-                        assert torch.max(label) <= num_classes
+                        assert torch.max(label) < num_classes
                 masks_probs = maskrcnn_inference(mask_logits, labels)
                 for mask_prob, r in zip(masks_probs, result):
                     r["masks"] = mask_prob

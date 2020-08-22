@@ -77,7 +77,22 @@ class GeneralizedRCNN(nn.Module):
             assert len(val) == 2
             original_image_sizes.append((val[0], val[1]))
 
+        assert torch.min(images[0]) >= 0.0
+        assert torch.max(images[0]) <= 1.0
+
         images, targets = self.transform(images, targets)
+
+        assert images.tensors[0].shape[0] == 3
+        assert images.tensors[0].shape[1] == 512
+        assert images.tensors[0].shape[2] == 512
+
+        # print("rcnn after transform min [{}] max [{}]".format(torch.min(images.tensors[0]), torch.max(images.tensors[0])))
+        # rcnn after transform min [-2.1179039478302] max [2.640000104904175]
+        # rcnn after transform min [-2.1179039478302] max [2.640000104904175]
+        # rcnn after transform min [-2.1179039478302] max [2.465708017349243]
+        # rcnn after transform min [-2.1179039478302] max [2.640000104904175]
+        # rcnn after transform min [-2.1179039478302] max [2.4110641479492188]
+        # rcnn after transform min [-2.1179039478302] max [2.640000104904175]
 
         # Check for degenerate boxes
         # TODO: Move this to a function

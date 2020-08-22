@@ -9,6 +9,7 @@ from torch.jit.annotations import List, Tuple, Dict, Optional
 from .image_list import ImageList
 from .roi_heads import paste_masks_in_image
 
+import matplotlib.pyplot as plt
 
 @torch.jit.unused
 def _resize_image_and_masks_onnx(image, self_min_size, self_max_size, target):
@@ -96,13 +97,27 @@ class GeneralizedRCNNTransform(nn.Module):
             targets = targets_copy
         for i in range(len(images)):
             image = images[i]
+            # print("i [{}]".format(i))
+            # print("image min [{}] max [{}]".format(torch.min(image), torch.max(image)))
             target_index = targets[i] if targets is not None else None
 
             if image.dim() != 3:
                 raise ValueError("images is expected to be a list of 3d tensors "
                                  "of shape [C, H, W], got {}".format(image.shape))
             image = self.normalize(image)
+            # print("size before [{}]".format(image.shape[-2:]))
+            # fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(14, 14))
+            # ax.imshow(image.cpu().permute(1, 2, 0))
+            # ax.axis('off')
+            # plt.show()
+            # print("before resize: [{}]".format(image.shape))
             image, target_index = self.resize(image, target_index)
+            # print("after resize: [{}]".format(image.shape))
+            # fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(14, 14))
+            # ax.imshow(image.cpu().permute(1, 2, 0))
+            # ax.axis('off')
+            # plt.show()
+            # print("size after [{}]".format(image.shape[-2:]))
             images[i] = image
             if targets is not None and target_index is not None:
                 targets[i] = target_index
@@ -112,9 +127,11 @@ class GeneralizedRCNNTransform(nn.Module):
         image_sizes_list = torch.jit.annotate(List[Tuple[int, int]], [])
         for image_size in image_sizes:
             assert len(image_size) == 2
+            # print("adding image size of [{}X{}]".format(image_size[0], image_size[1]))
             image_sizes_list.append((image_size[0], image_size[1]))
 
         image_list = ImageList(images, image_sizes_list)
+        # print(image_list.get_images_scales())
         return image_list, targets
 
     def normalize(self, image):
@@ -138,6 +155,7 @@ class GeneralizedRCNNTransform(nn.Module):
         h, w = image.shape[-2:]
         if self.training:
             size = float(self.torch_choice(self.min_size))
+            # print("random size [{}]".format(size))
         else:
             # FIXME assume for now that testing uses the largest scale
             size = float(self.min_size[-1])

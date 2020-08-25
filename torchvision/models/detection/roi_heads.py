@@ -724,6 +724,7 @@ class RoIHeads(torch.nn.Module):
                 features,      # type: Dict[str, Tensor]
                 proposals,     # type: List[Tensor]
                 image_shapes,  # type: List[Tuple[int, int]]
+                box_threshold,
                 targets=None   # type: Optional[List[Dict[str, Tensor]]]
                 ):
         # type: (...) -> Tuple[List[Dict[str, Tensor]], Dict[str, Tensor]]
@@ -790,26 +791,43 @@ class RoIHeads(torch.nn.Module):
                 segments_scores = []
                 for segment in image_detection:
                     score = float(segment[4])
-                    if score < .001:  # stop when below this threshold, scores in descending order
+                    if score < box_threshold:  # stop when below this threshold, scores in descending order
                         break
                     segments_boxes.append(segment[0:4].tolist())
                     segments_labels.append(int(segment[5]))
                     segments_scores.append(score)
 
-                segments_labels = torch.tensor(segments_labels) - 1
-                assert torch.min(segments_labels) >= 0
-                assert torch.min(segments_labels) < 11
-                assert len(segments_boxes) == len(segments_labels)
-                assert len(segments_boxes) == len(segments_scores)
-                
-                result.append(
-                    {
-                        "boxes": torch.tensor(segments_boxes).to(device),
-                        "labels": segments_labels.to(device),
-                        "scores": torch.tensor(segments_scores).to(device),
-                    }
-                )
+                segments_labels = torch.sub(torch.tensor(segments_labels).to(device), 1)
+                segments_boxes = torch.tensor(segments_boxes).to(device)
+                segments_scores = torch.tensor(segments_scores).to(device)
 
+                # here -1 marks background
+                indices_to_keep = (segments_labels != -1).nonzero().squeeze()
+                segments_labels = segments_labels[indices_to_keep]
+                segments_boxes = segments_boxes[indices_to_keep]
+                segments_scores = segments_scores[indices_to_keep]
+                # assert torch.min(segments_labels) >= 0
+                # assert torch.min(segments_labels) < 11
+                # assert len(segments_boxes) == len(segments_labels)
+                # assert len(segments_boxes) == len(segments_scores)
+                
+                if len(segments_labels.shape) > 0 and len(segments_labels) > 0:
+                    result.append(
+                        {
+                            "boxes": segments_boxes.to(device),
+                            "labels": segments_labels.to(device),
+                            "scores": segments_scores.to(device),
+                        }
+                    )
+                else:
+                    # case where the model did not detect any bounding box
+                    result.append(
+                        {
+                            "boxes": torch.tensor([[0.0,1.0,0.0,1.0]]*num_images, dtype=torch.float).to(device),
+                            "labels": torch.tensor([0]*num_images, dtype=torch.long).to(device),
+                            "scores": torch.tensor([0.001]*num_images, dtype=torch.float).to(device),
+                        }
+                    )
 
             # for index, sample in enumerate(detections):
             #     for det in sample:

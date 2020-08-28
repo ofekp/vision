@@ -868,6 +868,7 @@ class RoIHeads(torch.nn.Module):
                 raise Exception("Expected mask_roi_pool to be not None")
 
             loss_mask = {}
+            num_classes = mask_logits.shape[1]
             if self.training:
                 assert targets is not None
                 assert pos_matched_idxs is not None
@@ -878,7 +879,7 @@ class RoIHeads(torch.nn.Module):
                 gt_labels = [t - 1 for t in gt_labels]  # TODO(ofekp): compensating change in IMATDataset
                 for tt in gt_labels:
                     assert torch.min(tt) >= 0
-                    assert torch.min(tt) < 11
+                    assert torch.min(tt) < num_classes
                 rcnn_loss_mask = maskrcnn_loss(
                     mask_logits, mask_proposals,
                     gt_masks, gt_labels, pos_matched_idxs)
@@ -887,8 +888,7 @@ class RoIHeads(torch.nn.Module):
                 }
             else:
                 labels = [r["labels"] for r in result]
-                num_classes = mask_logits.shape[1]
-                assert num_classes == 11
+                
                 if len(labels) > 0:
                     for label in labels:
                         assert torch.min(label) >= 0

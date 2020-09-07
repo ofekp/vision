@@ -38,7 +38,7 @@ def nms(boxes: Tensor, scores: Tensor, iou_threshold: float) -> Tensor:
         by NMS, sorted in decreasing order of scores
     """
     if scores.device == "xla:1":
-        return xf.nms(boxes_for_nms, scores, torch.tensor(0.00001).to(scores.device), torch.tensor(iou_threshold, device=scores.device), boxes.shape[0])[0]
+        return xf.nms(boxes, scores, torch.tensor(0.00001).to(scores.device), torch.tensor(iou_threshold, device=scores.device), boxes.shape[0])[0]
     return torch.ops.torchvision.nms(boxes, scores, iou_threshold)
 
 

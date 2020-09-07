@@ -2,7 +2,6 @@ import torch
 from torch.jit.annotations import Tuple
 from torch import Tensor
 import torchvision
-import torch_xla.core.functions as xf
 
 
 def nms(boxes: Tensor, scores: Tensor, iou_threshold: float) -> Tensor:

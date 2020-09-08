@@ -2,6 +2,8 @@ import torch
 from torch.jit.annotations import Tuple
 from torch import Tensor
 import torchvision
+import torch_xla.core.functions as xf
+import torch_xla.core.xla_model as xm
 
 
 def nms(boxes: Tensor, scores: Tensor, iou_threshold: float) -> Tensor:
@@ -36,6 +38,8 @@ def nms(boxes: Tensor, scores: Tensor, iou_threshold: float) -> Tensor:
         of the elements that have been kept
         by NMS, sorted in decreasing order of scores
     """
+    if scores.device == xm.xla_device():
+        return xf.nms(boxes, scores, torch.tensor(0.00001).to(scores.device), torch.tensor(iou_threshold, device=scores.device), boxes.shape[0])[0]
     return torch.ops.torchvision.nms(boxes, scores, iou_threshold)
 
 

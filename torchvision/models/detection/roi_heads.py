@@ -846,7 +846,7 @@ class RoIHeads(torch.nn.Module):
                     score = float(segment[4])
                     if score < box_threshold:  # stop when below this threshold, scores in descending order
                         break
-                    proposals.append(segment[0:4].tolist())
+                    proposals.append(segment[0:4])
             proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
             assert labels is not None and regression_targets is not None
         else:

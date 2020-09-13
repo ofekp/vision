@@ -25,11 +25,11 @@ class GeneralizedRCNN(nn.Module):
             the model
     """
 
-    def __init__(self, backbone, rpn, roi_heads, transform):
+    def __init__(self, backbone, roi_heads, transform):
         super(GeneralizedRCNN, self).__init__()
         self.transform = transform
         self.backbone = backbone
-        self.rpn = rpn
+        # self.rpn = rpn
         self.roi_heads = roi_heads
         # used only on torchscript mode
         self._has_warned = False
@@ -112,8 +112,8 @@ class GeneralizedRCNN(nn.Module):
         if isinstance(features, torch.Tensor):
             # ofekp: we do not reach here
             features = OrderedDict([('0', features)])
-        proposals, proposal_losses = self.rpn(images, features, targets)
-        detections, detector_losses = self.roi_heads(images, features, proposals, images.image_sizes, box_threshold, targets)
+        # proposals, proposal_losses = self.rpn(images, features, targets)
+        detections, detector_losses = self.roi_heads(images, features, images.image_sizes, box_threshold, targets)
         detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
 
         losses = {}

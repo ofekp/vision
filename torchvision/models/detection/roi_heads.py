@@ -722,7 +722,7 @@ class RoIHeads(torch.nn.Module):
     def forward(self,
                 images,
                 features,      # type: Dict[str, Tensor]
-                proposals,     # type: List[Tensor]
+                #proposals,     # type: List[Tensor]
                 image_shapes,  # type: List[Tuple[int, int]]
                 box_threshold,
                 targets=None   # type: Optional[List[Dict[str, Tensor]]]
@@ -743,13 +743,6 @@ class RoIHeads(torch.nn.Module):
                 assert t["labels"].dtype == torch.int64, 'target labels must of int64 type'
                 if self.has_keypoint():
                     assert t["keypoints"].dtype == torch.float32, 'target keypoints must of float type'
-
-        if self.training:
-            proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
-        else:
-            labels = None
-            regression_targets = None
-            matched_idxs = None
 
         # box_features = self.box_roi_pool(features, proposals, image_shapes)
         # box_features = self.box_head(box_features)
@@ -843,6 +836,23 @@ class RoIHeads(torch.nn.Module):
             #         )
             #         # self.img_ids.append(image_id)
             #         # self.predictions.append(coco_det)
+
+        if self.training:
+            detections = output_map['detections']
+            num_images = detections.shape[0]
+            for i in range(num_images):
+                image_detection = detections[i]
+                proposals = []
+                for segment in image_detection:
+                    score = float(segment[4])
+                    if score < box_threshold:  # stop when below this threshold, scores in descending order
+                        break
+                    proposals.append(segment[0:4].tolist())
+            proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
+        else:
+            labels = None
+            regression_targets = None
+            matched_idxs = None
 
         if self.has_mask():
             mask_proposals = [p["boxes"] for p in result]

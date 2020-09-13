@@ -183,19 +183,19 @@ class FasterRCNN(GeneralizedRCNN):
             rpn_anchor_generator = AnchorGenerator(
                 anchor_sizes, aspect_ratios
             )
-        if rpn_head is None:
-            rpn_head = RPNHead(
-                out_channels, rpn_anchor_generator.num_anchors_per_location()[0]
-            )
+        # if rpn_head is None:
+        #     rpn_head = RPNHead(
+        #         out_channels, rpn_anchor_generator.num_anchors_per_location()[0]
+        #     )
 
         rpn_pre_nms_top_n = dict(training=rpn_pre_nms_top_n_train, testing=rpn_pre_nms_top_n_test)
         rpn_post_nms_top_n = dict(training=rpn_post_nms_top_n_train, testing=rpn_post_nms_top_n_test)
 
-        rpn = RegionProposalNetwork(
-            rpn_anchor_generator, rpn_head,
-            rpn_fg_iou_thresh, rpn_bg_iou_thresh,
-            rpn_batch_size_per_image, rpn_positive_fraction,
-            rpn_pre_nms_top_n, rpn_post_nms_top_n, rpn_nms_thresh)
+        # rpn = RegionProposalNetwork(
+        #     rpn_anchor_generator, rpn_head,
+        #     rpn_fg_iou_thresh, rpn_bg_iou_thresh,
+        #     rpn_batch_size_per_image, rpn_positive_fraction,
+        #     rpn_pre_nms_top_n, rpn_post_nms_top_n, rpn_nms_thresh)
 
         if box_roi_pool is None:
             box_roi_pool = MultiScaleRoIAlign(
@@ -230,7 +230,7 @@ class FasterRCNN(GeneralizedRCNN):
             image_std = [0.229, 0.224, 0.225]
         transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
 
-        super(FasterRCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        super(FasterRCNN, self).__init__(backbone, roi_heads, transform)
 
 
 class TwoMLPHead(nn.Module):

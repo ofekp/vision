@@ -839,14 +839,17 @@ class RoIHeads(torch.nn.Module):
         if self.training:
             detections = output_map['detections']
             num_images = detections.shape[0]
+            proposals = []
             for i in range(num_images):
                 image_detection = detections[i]
-                proposals = []
+                proposals_for_image = []
                 for segment in image_detection:
                     score = float(segment[4])
                     if score < box_threshold:  # stop when below this threshold, scores in descending order
                         break
-                    proposals.append(segment[0:4])
+                    proposals_for_image.append(segment[0:4])
+                proposals.append(torch.stack(proposals_for_image, dim=0))
+            # here, proposals is List(tensor(N,4))
             proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
             assert labels is not None and regression_targets is not None
         else:

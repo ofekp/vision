@@ -753,7 +753,6 @@ class RoIHeads(torch.nn.Module):
         result = torch.jit.annotate(List[Dict[str, torch.Tensor]], [])
         losses = {}
         if self.training:
-            assert labels is not None and regression_targets is not None
             # loss_classifier, loss_box_reg = fastrcnn_loss(
             #     class_logits, box_regression, labels, regression_targets)
             # losses = {
@@ -849,6 +848,7 @@ class RoIHeads(torch.nn.Module):
                         break
                     proposals.append(segment[0:4].tolist())
             proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
+            assert labels is not None and regression_targets is not None
         else:
             labels = None
             regression_targets = None

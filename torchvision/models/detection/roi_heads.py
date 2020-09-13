@@ -844,10 +844,11 @@ class RoIHeads(torch.nn.Module):
                 image_detection = detections[i]
                 proposals_for_image = []
                 for segment in image_detection:
+                    # important: we need at least one proposal for this to work
+                    proposals_for_image.append(segment[0:4])
                     score = float(segment[4])
                     if score < box_threshold:  # stop when below this threshold, scores in descending order
                         break
-                    proposals_for_image.append(segment[0:4])
                 proposals.append(torch.stack(proposals_for_image, dim=0))
             # here, proposals is List(tensor(N,4))
             proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
